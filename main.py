@@ -18,7 +18,7 @@ def to_iso_date(ts):
 
 
 def has_video(i):
-    return True if get_value(i, 'status') == "successful" else False
+    return False if str(i) == "nan" else True
 
 
 def has_photo(i):
@@ -35,19 +35,19 @@ def get_score(i, metric):
 
 
 def get_ascii(i):
-    return str(i.encode('ascii', errors='ignore'))
+    return i.encode('ascii', errors='ignore').decode()
     
 
 def load_csv(path):
     # print(f"Path: {path}")
     target_columns = [
         'backers_count', 'blurb', 'category', 'converted_pledged_amount', 'country',
-        'created_at', 'deadline', 'disable_communication', 'goal', 'id', 'launched_at',
+        'created_at', 'deadline', 'goal', 'id', 'launched_at',
         'location', 'name', 'photo', 'pledged', 'spotlight', 'staff_pick', 'state',
-        'usd_pledged', 'video'
+        'usd_pledged', 'video', 'prelaunch_activated', 'is_liked', 'is_disliked', 'is_starrable'
     ]
     
-    boolean_columns = ['disable_communication', 'spotlight', 'staff_pick']
+    boolean_columns = ['prelaunch_activated', 'spotlight', 'staff_pick', 'photo', 'video', 'is_liked', 'is_disliked', 'is_starrable']
     
     timestamp_columns = ['created_at', 'deadline', 'launched_at']
     
@@ -59,9 +59,9 @@ def load_csv(path):
     for col in timestamp_columns:
         df[col] = df[col].apply(to_iso_date)
 
-    for col in boolean_columns:
-            df[col] = df[col].astype(bool)
     
+    df = df[(df["state"] == "successful") | (df["state"] == "failed")]
+    df["state"] = df["state"].map({'successful': 1, 'failed': 0})
     df["blurb"] = df["blurb"].fillna('').apply(get_ascii)
     df["blurb_wc"] = df["blurb"].apply(lambda x: len(x.split()))
     df["dale_chall"] = df["blurb"].apply(lambda x: get_score(x, textstat.dale_chall_readability_score))
@@ -73,7 +73,12 @@ def load_csv(path):
     df["photo"] = df["photo"].apply(has_photo)
     df["camp_len"] = df.apply(lambda row: diff_in_months(row["launched_at"], row["deadline"]), axis=1)
     
-    # df = df[df["blurb_wc"] >= 10].drop(columns=["blurb_wc"])
+    for col in boolean_columns:
+            df[col] = df[col].astype(bool).astype(int)
+    
+    df = df[df["blurb_wc"] >= 15]
+    
+    df = df.drop(columns = ['created_at','launched_at','deadline'])
     return df
 
 
@@ -88,6 +93,7 @@ def load_all_csvs():
         files = [f for f in files if os.path.isfile('/'.join([current_month, f])) and "~lock" not in f]
         for file in files:
             current_file = '/'.join([current_month, file])
+            print(f"Processing file : {current_file}")
             df = load_csv(current_file)
             dfs.append(df)
         
@@ -98,34 +104,40 @@ def load_all_csvs():
 def tfidf(blurbs):
     tf = TfidfVectorizer(ngram_range=(2, 2),  # bigrams only
                             stop_words='english')  # remove common stopwords
-    return tf.fit_transform(blurbs)
+    tf_idf = tf.fit_transform(blurbs)
+    return pd.DataFrame(tf_idf.to_array(), columns=tf.get_feature_names_out())
 
-FILENAME = "fullfile_ascii_1.csv"
+FILENAME = "fullfile_ascii_3.csv"
 
-
+def perform_experiment(df):
+    tf_blurb = tfidf(df["blurb"])
+    df = df.reset_index(drop=True)
+    tf_blurb = tf_blurb.reset_index(drop=True)
+    full = pd.concat([df, tf_blurb], axis=1)
+    
+    full_df = pd.concat([full_df, tfidf_df], axis=1)
+    
 
 df = load_all_csvs()
 print(df.info())
 print(df.describe())
 df = df.dropna()
+# df.drop(columns='Unnamed: 0')
+print(df['video'].value_counts())
+print(df['photo'].value_counts())
 df.to_csv(FILENAME)
 
-tf_blurb = tfidf(df["blurbs"])
-print(tf_blurb)
-
-
-# print(glob(month, '*.csv'))
-# print(os.listdir(month))
-# df = pd.read_csv("data/Kickstarter_2020-01-16T03_20_15_556Z/Kickstarter.csv")
-# print(df.columns)
-
 # df = pd.read_csv(FILENAME, low_memory=False)
-# df.dropna()
-# df.dropna(axis=1)
-# df.to_csv(f"dropped+{FILENAME}")
-# print(df.columns)
-# print(df["location"])
-# # df = df[df["blurb_wc"] >= 50].drop(columns=["blurb_wc"])
-# # print(df.head())
+# print(df.info())
+# # df.dropna()
+# # df.dropna(axis=1)
+# # df.to_csv(f"dropped+{FILENAME}")
+# # print(df.columns)
+# # print(df["location"])
+# # # df = df[df["blurb_wc"] >= 50].drop(columns=["blurb_wc"])
+# # # print(df.head())
+# print(df["state"].value_counts())
 
 
+# tf_blurb = tfidf(df["blurb"])
+# print(tf_blurb)
