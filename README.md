@@ -55,6 +55,9 @@ unxz full_dataset.csv.xz
 ```
 in order to uncompress the file on Unix-like devices, or use 7zip on Windows devices.
 
+Alternatively, you can download the file from here: 
+https://drive.google.com/file/d/1pt_b1G5oXA6ERSmdlCc_EXhiOCVMIGwX/view?usp=sharing
+
 # Issue while running Lime experiments
 
 In case you encounter issue while running Lime with newer versions of python, you can go to `.venv/lib/python3.13/site-packages/lime/explanation.py` in line 194, change
