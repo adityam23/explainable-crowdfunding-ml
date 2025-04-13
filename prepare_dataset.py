@@ -129,7 +129,7 @@ def main(datafolder, output_file):
     # Drop missing values, we have too much data anyway
     df = df.dropna()
     # Save file
-    df.to_csv(FILENAME)
+    df.to_csv(output_file)
     
 
 if __name__ == "__main__":
@@ -155,7 +155,6 @@ if __name__ == "__main__":
 #     tf_idf = tf.fit_transform(blurbs)
 #     return pd.DataFrame(tf_idf.to_array(), columns=tf.get_feature_names_out())
 
-FILENAME = "fullfile_ascii_3.csv"
 
 
 
