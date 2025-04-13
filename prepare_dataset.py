@@ -4,6 +4,8 @@ import os
 import datetime
 import textstat
 from sklearn.feature_extraction.text import TfidfVectorizer
+import argparse 
+
 
 def get_value(i, val):
     try:
@@ -89,9 +91,11 @@ def load_csv(path):
     return df
 
 
-def load_all_csvs():
+def load_all_csvs(datafolder):
     # Base folder
-    datafolder = "data"
+    # datafolder = DATAFOLDER
+    # print(datafolder)
+    # print(DATAFOLDER)
     months = os.listdir(datafolder)
     months = [m for m in months if os.path.isdir('/'.join([datafolder,m]))]
     dfs = []
@@ -110,6 +114,40 @@ def load_all_csvs():
     full_df = pd.concat(dfs)
     return full_df
 
+def main(datafolder, output_file):
+    
+    if not os.path.isdir(datafolder):
+        print("Error: Provided path does not exist or is not a directory.")
+        return
+    
+    if output_file:
+        if not ".csv" in output_file:
+            output_file += ".csv"
+    
+    # Load full dataset
+    df = load_all_csvs(datafolder)
+    # Drop missing values, we have too much data anyway
+    df = df.dropna()
+    # Save file
+    df.to_csv(FILENAME)
+    
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Prepare single dataset from the data folder.")
+    parser.add_argument(
+           "-d", "--data",
+           type=str,
+           default="./data",
+           help="Path to the data folder (default: ./data)"
+       )
+    parser.add_argument(
+        "-f", "--file",
+        type=str,
+        default="full_dataset",
+        help="Optional: Name of the output csv file"
+    )
+    args = parser.parse_args()
+    main(args.data, args.file)
 
 # def tfidf(blurbs):
 #     tf = TfidfVectorizer(ngram_range=(2, 2),  # bigrams only
@@ -119,10 +157,5 @@ def load_all_csvs():
 
 FILENAME = "fullfile_ascii_3.csv"
 
-# Load full dataset
-df = load_all_csvs()
-# Drop missing values, we have too much data anyway
-df = df.dropna()
-# Save file
-df.to_csv(FILENAME)
+
 
