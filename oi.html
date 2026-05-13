@@ -37089,25 +37089,25 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_divF6SZWODXAWLY3JX"></div>
+        <div class="lime top_div" id="top_divH428Y5HML5T10FI"></div>
         
         <script>
-        var top_div = d3.select('#top_divF6SZWODXAWLY3JX').classed('lime top_div', true);
+        var top_div = d3.select('#top_divH428Y5HML5T10FI').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
             var pp_svg = pp_div.append('svg').style('width', '100%');
-            var pp = new lime.PredictProba(pp_svg, ["fail", "success"], [0.2628127932548523, 0.7371872067451477]);
+            var pp = new lime.PredictProba(pp_svg, ["0", "1"], [6.99758529663086e-05, 0.9999300241470337]);
             
         
         var exp_div;
-            var exp = new lime.Explanation(["fail", "success"]);
+            var exp = new lime.Explanation(["0", "1"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["goal > -0.03", -0.37309946728269605], ["staff_pick > -0.45", 0.34323037722488475], ["category_Shorts <= 0.00", -0.33388245221480106], ["tasting room <= 0.00", -0.33286864787870174], ["category_Art Books <= 0.00", -0.3308566902101711], ["category_Rock <= 0.00", -0.3224161311069397], ["category_Narrative Film <= 0.00", -0.31876830526046557], ["category_Country & Folk <= 0.00", -0.30742575135288586], ["category_Quilts <= 0.00", -0.16310306047102127], ["role playing <= 0.00", -0.15369802986157166]], 1, exp_div);
+                exp.show([["-1.29 < spotlight <= 0.77", 0.9987217595335789], ["studio space <= 0.00", 0.00036917995117820204], ["local community <= 0.00", 0.0002768911593746983], ["present future <= 0.00", 0.00027647682972728975], ["book exploring <= 0.00", 0.0002762696685654769], ["category_Design <= 0.00", 0.0002762696685648612], ["pins featuring <= 0.00", 0.00026736718839402723], ["fun exciting <= 0.00", 0.00022551062204136986], ["category_Chiptune <= 0.00", -0.00015881605905268455], ["paranormal romance <= 0.00", 7.679654651668445e-05]], 1, exp_div);
                 
         var raw_div = top_div.append('div');
-            exp.show_raw_tabular([["goal", "100000.00", -0.37309946728269605], ["staff_pick", "2.20", 0.34323037722488475], ["category_Shorts", "0.00", -0.33388245221480106], ["tasting room", "0.00", -0.33286864787870174], ["category_Art Books", "0.00", -0.3308566902101711], ["category_Rock", "0.00", -0.3224161311069397], ["category_Narrative Film", "0.00", -0.31876830526046557], ["category_Country & Folk", "0.00", -0.30742575135288586], ["category_Quilts", "0.00", -0.16310306047102127], ["role playing", "0.00", -0.15369802986157166]], 1, raw_div);
+            exp.show_raw_tabular([["spotlight", "0.77", 0.9987217595335789], ["studio space", "0.00", 0.00036917995117820204], ["local community", "0.00", 0.0002768911593746983], ["present future", "0.00", 0.00027647682972728975], ["book exploring", "0.00", 0.0002762696685654769], ["category_Design", "0.00", 0.0002762696685648612], ["pins featuring", "0.00", 0.00026736718839402723], ["fun exciting", "0.00", 0.00022551062204136986], ["category_Chiptune", "0.00", -0.00015881605905268455], ["paranormal romance", "0.00", 7.679654651668445e-05]], 1, raw_div);
         
         </script>
         </body></html>
