@@ -9,7 +9,8 @@ This project replicates the results from [this paper](https://www.mdpi.com/2071-
 **Requirements:** Python 3.14+, [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
-git clone <repo-url> && cd explainable-crowdfunding-ml
+git clone https://github.com/adityam23/explainable-crowdfunding-ml.git
+cd explainable-crowdfunding-ml
 uv sync
 ```
 
