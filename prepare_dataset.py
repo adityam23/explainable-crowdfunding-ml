@@ -3,9 +3,11 @@ import json
 import os
 import datetime
 import textstat
-from sklearn.feature_extraction.text import TfidfVectorizer
-import argparse 
+import argparse
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 def get_value(i, val):
     try:
@@ -14,35 +16,37 @@ def get_value(i, val):
     except Exception:
         return None
 
-
 def to_iso_date(ts):
-    return datetime.datetime.fromtimestamp(int(ts), datetime.UTC).strftime('%Y-%m-%d')
-
+    try:
+        return datetime.datetime.fromtimestamp(int(ts), datetime.UTC).strftime('%Y-%m-%d')
+    except (ValueError, TypeError):
+        return None
 
 def has_video(i):
     return False if str(i) == "nan" else True
 
-
 def has_photo(i):
     return True if get_value(i, 'key') else False
 
-
 def diff_in_months(start_date, end_date):
-    # Campaign duration in months
-    d1 = datetime.datetime.strptime(start_date, "%Y-%m-%d")
-    d2 = datetime.datetime.strptime(end_date, "%Y-%m-%d")
-    return (d2.year - d1.year) * 12 + (d2.month - d1.month)
+    if not start_date or not end_date:
+        return 0
+    try:
+        d1 = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+        d2 = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+        return (d2.year - d1.year) * 12 + (d2.month - d1.month)
+    except ValueError:
+        return 0
 
 def get_score(i, metric):
     return metric(i)
 
-
 def get_ascii(i):
+    if not isinstance(i, str):
+        return ""
     return i.encode('ascii', errors='ignore').decode()
-    
 
 def load_csv(path):
-    # print(f"Path: {path}")
     target_columns = [
         'backers_count', 'blurb', 'category', 'converted_pledged_amount', 'country',
         'created_at', 'deadline', 'goal', 'id', 'launched_at',
@@ -51,109 +55,96 @@ def load_csv(path):
     ]
     
     boolean_columns = ['prelaunch_activated', 'spotlight', 'staff_pick', 'photo', 'video', 'is_liked', 'is_disliked', 'is_starrable']
-    
     timestamp_columns = ['created_at', 'deadline', 'launched_at']
     
-    df = pd.read_csv(path, low_memory=False)
-    df = df[target_columns]
-    df['category'] = df['category'].apply(lambda x: get_value(x, 'name'))
-    df['location'] = df['location'].apply(lambda x: get_value(x, 'name'))
+    try:
+        df = pd.read_csv(path, low_memory=False)
+        # Ensure all target columns exist
+        missing_cols = [col for col in target_columns if col not in df.columns]
+        if missing_cols:
+            logging.warning(f"Missing columns {missing_cols} in {path}. Skipping file.")
+            return pd.DataFrame()
+            
+        df = df[target_columns]
+        df['category'] = df['category'].apply(lambda x: get_value(x, 'name'))
+        df['location'] = df['location'].apply(lambda x: get_value(x, 'name'))
 
-    for col in timestamp_columns:
-        df[col] = df[col].apply(to_iso_date)
+        for col in timestamp_columns:
+            df[col] = df[col].apply(to_iso_date)
 
-    # Only successful/failed kickstarters
-    df = df[(df["state"] == "successful") | (df["state"] == "failed")]
-    df["state"] = df["state"].map({'successful': 1, 'failed': 0})
-    
-    # Text based features
-    df["blurb"] = df["blurb"].fillna('').apply(get_ascii)
-    df["blurb_wc"] = df["blurb"].apply(lambda x: len(x.split()))
-    df["dale_chall"] = df["blurb"].apply(lambda x: get_score(x, textstat.dale_chall_readability_score))
-    df["flesch_kincaid"] = df["blurb"].apply(lambda x: get_score(x, textstat.flesch_reading_ease))
-    df["smog"] = df["blurb"].apply(lambda x: get_score(x, textstat.smog_index))
-    df["gun_fog"] = df["blurb"].apply(lambda x: get_score(x, textstat.gunning_fog))
-    
-    df["video"] = df["video"].apply(has_video)
-    df["photo"] = df["photo"].apply(has_photo)
-    
-    # Campaign length (in months) is more important than raw dates
-    df["camp_len"] = df.apply(lambda row: diff_in_months(row["launched_at"], row["deadline"]), axis=1)
-    
-    # 0=False, 1=True
-    for col in boolean_columns:
+        # Only successful/failed kickstarters
+        df = df[(df["state"] == "successful") | (df["state"] == "failed")]
+        df["state"] = df["state"].map({'successful': 1, 'failed': 0})
+        
+        # Text based features
+        df["blurb"] = df["blurb"].fillna('').apply(get_ascii)
+        df["blurb_wc"] = df["blurb"].apply(lambda x: len(x.split()))
+        df["dale_chall"] = df["blurb"].apply(lambda x: get_score(x, textstat.dale_chall_readability_score))
+        df["flesch_kincaid"] = df["blurb"].apply(lambda x: get_score(x, textstat.flesch_reading_ease))
+        df["smog"] = df["blurb"].apply(lambda x: get_score(x, textstat.smog_index))
+        df["gun_fog"] = df["blurb"].apply(lambda x: get_score(x, textstat.gunning_fog))
+        
+        df["video"] = df["video"].apply(has_video)
+        df["photo"] = df["photo"].apply(has_photo)
+        
+        df["camp_len"] = df.apply(lambda row: diff_in_months(row["launched_at"], row["deadline"]), axis=1)
+        
+        for col in boolean_columns:
             df[col] = df[col].astype(bool).astype(int)
-    
-    # Only keep longer blurbs (around 50% of raw dataset)
-    df = df[df["blurb_wc"] >= 15]
-    
-    df = df.drop(columns = ['created_at','launched_at','deadline'])
-    return df
-
+        
+        # Only keep longer blurbs
+        df = df[df["blurb_wc"] >= 15]
+        df = df.drop(columns=['created_at', 'launched_at', 'deadline'])
+        return df
+    except Exception as e:
+        logging.error(f"Error processing {path}: {e}")
+        return pd.DataFrame()
 
 def load_all_csvs(datafolder):
-    # Base folder
-    # datafolder = DATAFOLDER
-    # print(datafolder)
-    # print(DATAFOLDER)
-    months = os.listdir(datafolder)
-    months = [m for m in months if os.path.isdir('/'.join([datafolder,m]))]
+    if not os.path.exists(datafolder):
+        logging.error(f"Data folder {datafolder} does not exist.")
+        return pd.DataFrame()
+
+    months = [m for m in os.listdir(datafolder) if os.path.isdir(os.path.join(datafolder, m))]
+    if not months:
+        logging.warning("No subdirectories found in data folder.")
+        
     dfs = []
     for month in months:
-        # Subfolders
-        current_month = '/'.join([datafolder, month])
-        files = os.listdir(current_month)
-        files = [f for f in files if os.path.isfile('/'.join([current_month, f])) and "~lock" not in f]
+        current_month_path = os.path.join(datafolder, month)
+        files = [f for f in os.listdir(current_month_path) if f.endswith('.csv') and "~lock" not in f]
         for file in files:
-            # CSV files
-            current_file = '/'.join([current_month, file])
-            print(f"Processing file : {current_file}")
-            df = load_csv(current_file)
-            dfs.append(df)
+            current_file_path = os.path.join(current_month_path, file)
+            logging.info(f"Processing file: {current_file_path}")
+            df = load_csv(current_file_path)
+            if not df.empty:
+                dfs.append(df)
         
-    full_df = pd.concat(dfs)
-    return full_df
+    if not dfs:
+        return pd.DataFrame()
+    return pd.concat(dfs, ignore_index=True)
 
 def main(datafolder, output_file):
+    if output_file and not output_file.endswith(".csv"):
+        output_file += ".csv"
     
-    if not os.path.isdir(datafolder):
-        print("Error: Provided path does not exist or is not a directory.")
-        return
-    
-    if output_file:
-        if not ".csv" in output_file:
-            output_file += ".csv"
-    
-    # Load full dataset
+    logging.info(f"Starting dataset preparation from {datafolder}")
     df = load_all_csvs(datafolder)
-    # Drop missing values, we have too much data anyway
-    df = df.dropna()
-    # Save file
-    df.to_csv(output_file)
     
+    if df.empty:
+        logging.error("No data collected. Output file will not be created.")
+        return
+
+    df = df.dropna()
+    df.to_csv(output_file, index=False)
+    logging.info(f"Dataset saved to {output_file}. Processed {len(df)} records.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare single dataset from the data folder.")
-    parser.add_argument(
-           "-d", "--data",
-           type=str,
-           default="./data",
-           help="Path to the data folder (default: ./data)"
-       )
-    parser.add_argument(
-        "-f", "--file",
-        type=str,
-        default="full_dataset",
-        help="Optional: Name of the output csv file"
-    )
+    parser.add_argument("-d", "--data", type=str, default="./data", help="Path to the data folder")
+    parser.add_argument("-f", "--file", type=str, default="full_dataset", help="Output CSV filename")
     args = parser.parse_args()
     main(args.data, args.file)
-
-# def tfidf(blurbs):
-#     tf = TfidfVectorizer(ngram_range=(2, 2),  # bigrams only
-#                             stop_words='english')  # remove common stopwords
-#     tf_idf = tf.fit_transform(blurbs)
-#     return pd.DataFrame(tf_idf.to_array(), columns=tf.get_feature_names_out())
 
 
 
