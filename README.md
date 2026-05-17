@@ -14,6 +14,18 @@ cd explainable-crowdfunding-ml
 uv sync
 ```
 
+`uv sync` installs both runtime and dev dependencies (including `ruff`). To skip dev tooling, use `uv sync --no-dev`.
+
+### Lint and format
+
+```bash
+uv run ruff format .     # auto-format
+uv run ruff check .      # lint
+uv run ruff check --fix . # lint + autofix
+```
+
+Configuration lives in `pyproject.toml` under `[tool.ruff]`. Notebooks are excluded from ruff by default.
+
 ## Running the project
 
 The dataset is composed of CSV files compressed in zip format, organized by month in subfolders like `Kickstarter_<ISO_TIMESTAMP>`. Each subfolder contains kickstarter CSV files.

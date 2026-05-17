@@ -1,7 +1,7 @@
 [project]
 name = "explainable-crowdfunding-ml"
 version = "0.1.0"
-description = "Add your description here"
+description = "Crowdfunding dataset analysis with SHAP, LIME, DICE, and XGBoost"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -16,4 +16,30 @@ dependencies = [
     "shap>=0.49.1",
     "textstat>=0.7.13",
     "xgboost>=3.2.0",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = [
+    "*.ipynb",
+    ".venv",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "W",   # pycodestyle warnings
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.13",
 ]
